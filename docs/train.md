@@ -66,9 +66,9 @@ Difference between `resume-from` and `load-from`:
 An example:
 
 ```shell
-# checkpoints and logs saved in WORK_DIR=work_dirs/saves/depthformer/depthformer_swint_w7_nyu
+# checkpoints and logs saved in WORK_DIR=work_dirs/saves/Hf-Depth/Hf-Depth_swint_w7_nyu
 # If work_dir is not set, it will be generated automatically.
-bash ./tools/dist_train.sh configs/depthformer/depthformer_swint_w7_nyu.py 2 --work-dir work_dirs/saves/depthformer/depthformer_swint_w7_nyu
+bash ./tools/dist_train.sh configs/Hf-Depth_swinL/Hf-Depth_swint_w7_nyu.py 2 --work-dir work_dirs/saves/Hf-Depth/Hf-Depth_swint_w7_nyu
 ```
 
 **Note**: During training, checkpoints and logs are saved in the same folder structure as the config file under `work_dirs/`. Custom work directory is not recommended since evaluation scripts infer work directories from the config file name. If you want to save your weights somewhere else, please use symlink, for example:
@@ -116,10 +116,10 @@ Train with multiple machines:
 [GPUS=${GPUS}] sh tools/slurm_train.sh ${PARTITION} ${JOB_NAME} ${CONFIG_FILE} --work-dir ${WORK_DIR}
 ```
 
-Here is an example of using 16 GPUs to train DepthFormer on the dev partition.
+Here is an example of using 16 GPUs to train Hf-Depth on the dev partition.
 
 ```shell
-GPUS=16 sh tools/slurm_train.sh dev depthformer configs/depthformer/depthformer_swint_w7_nyu.py --work-dir work_dirs/saves/depthformer/depthformer_swint_w7_nyu
+GPUS=16 sh tools/slurm_train.sh dev depthformer configs/Hf-Depth_swinL/Hf-Depth_swinL_swint_w7_nyu.py --work-dir work_dirs/saves/Hf-Depth_swinL/Hf-Depth_swinL_swint_w7_nyu
 ```
 
 When using 'slurm_train.sh' to start multiple tasks on a node, different ports need to be specified. Three settings are provided:

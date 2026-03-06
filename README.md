@@ -41,7 +41,6 @@ Supported methods:
 - [x] [SimIPU (AAAI'2022)](configs/simipu)
 - [x] [DPT (ICCV'2021) (TBD)](configs/dpt)
 - [x] [NeWCRFs (CVPR'2022) (TBD)](configs/newcrfs)
-- [x] [DepthFormer (Arxiv'2022)](configs/depthformer)
 - [x] [BinsFormer (Arxiv'2022)](configs/binsformer) (Early release. It may contain bugs or potential performance drop)
 
 Supported datasets:

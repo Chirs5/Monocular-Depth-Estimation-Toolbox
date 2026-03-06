@@ -39,7 +39,7 @@ If you have trained the model yourself, please place the trained checkpoint file
 1. Test Hf-Depth_swinL and visualize the results. 
 
     ```shell
-    python tools/test.py configs/Hfdepth/Hf-depth_swinl_nyu.py \
+    python tools/test.py configs/Hf-Depth_swinL/Hf-depth_swinl_nyu.py \
         checkpoints/Hfdepth_swinl.pth \
         --show
     ```
@@ -47,7 +47,7 @@ If you have trained the model yourself, please place the trained checkpoint file
 2. Test DepthFormer and save the painted images for latter visualization.
 
     ```shell
-    python tools/test.py configs/Hfdepth/Hf-depth_swinl_nyu.py \
+    python tools/test.py configs/Hf-Depth_swinL/Hf-depth_swinl_nyu.py \
         checkpoints/Hfdepth_swinl_22k_w7_nyu.pth \
         --show-dir Hfdepth_swinl_22k_w7_nyu_results
     ```
@@ -55,7 +55,7 @@ If you have trained the model yourself, please place the trained checkpoint file
 3. Test DepthFormer on NYU (without saving the test results) and evaluate the mIoU.
 
     ```shell
-    python tools/test.py configs//Hfdepth/Hf-depth_swinl_nyu.py \
+    python tools/test.py configs/Hf-Depth_swinL/Hf-depth_swinl_nyu.py \
         checkpoints/Hfdepth_swinl_22k_w7_nyu.pth \
         --eval x(can be any arg)
     ```
@@ -63,7 +63,7 @@ If you have trained the model yourself, please place the trained checkpoint file
 4. Test DepthFormer with 4 GPUs, and evaluate the standard 2D metric.
 
     ```shell
-    bash ./tools/dist_test.sh configs/Hfdepth/Hf-depth_swinl_nyu.py \
+    bash ./tools/dist_test.sh configs/Hf-Depth_swinL/Hf-depth_swinl_nyu.py \
         checkpoints/Hfdepth_swinl_22k_w7_nyu.pth \
         4 --eval x(can be any arg)
     ```
@@ -89,7 +89,7 @@ If you have trained the model yourself, please place the trained checkpoint file
 
     ```shell
     python ./tools/misc/visualize_point-cloud.py \
-        configs/Hfdepth/Hf-depth_swinl_nyu.py \
+        configs/Hf-Depth_swinL/Hf-depth_swinl_nyu.py \
         checkpoints/Hf-depth_swinl_22k_w7_nyu.pth \
         --output-dir point-cloud
     ```

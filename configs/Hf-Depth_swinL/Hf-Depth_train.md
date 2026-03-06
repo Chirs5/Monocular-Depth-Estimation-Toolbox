@@ -34,7 +34,7 @@ data
 
 Detailed dataset preparation instructions and download links can be found in:
 
-**[Dataset Preparation Guide](../docs/dataset_prepare.md)**
+**[Dataset Preparation Guide](docs/dataset_prepare.md)**
 
 ---
 
@@ -88,7 +88,7 @@ Training on the **NYU dataset** follows the same procedure as KITTI.
 
 Please prepare the dataset according to the instructions in:
 
-**[Dataset Preparation Guide](../docs/dataset_prepare.md)**
+**[Dataset Preparation Guide](docs/dataset_prepare.md)**
 
 The directory structure and dataset download instructions are provided in that document.
 
@@ -98,7 +98,7 @@ The directory structure and dataset download instructions are provided in that d
 
 If you want to run inference with a trained model, please refer to:
 
-**[Inference Guide](../docs/inference.md)**
+**[Inference Guide](docs/inference.md)**
 
 This document explains how to run evaluation and visualization using trained checkpoints.
 

@@ -36,7 +36,6 @@ Supported backbones (partially release):
 - [x] EfficientNet (ICML'2019)
 - [x] Vision Transformer (ICLR'2021)
 - [x] Swin Transformer (ICCV'2021)
-- I recommend cross-package import in config, so that you can utilize other backbone in MMcls, MMseg, *etc*. Refer to [introduction](https://zhuanlan.zhihu.com/p/436865195). I will add more backbones in the future.
 
 Supported methods:
 - [x] [BTS (Arxiv'2019)](configs/bts)
@@ -58,7 +57,7 @@ Please refer to [get_started.md](docs/get_started.md#installation) for installat
 
 ## Get Started
 
-We provide [train.md](docs/train.md) and [inference.md](docs/inference.md) for the usage of this toolbox. 
+This tools provides [train.md](docs/train.md) and [inference.md](docs/inference.md) for the usage of this toolbox. 
 
 <!-- In the future, there will be tutorials for [customizing dataset (TODO)](docs/tutorials/customize_datasets.md), [designing data pipeline (TODO)](docs/tutorials/data_pipeline.md), [customizing modules (TODO)](docs/tutorials/customize_models.md), and [customizing runtime (TODO)](docs/tutorials/customize_runtime.md). We also provide [training tricks (TODO)](docs/tutorials/training_tricks.md). -->
 
@@ -88,6 +87,4 @@ This repo benefits from awesome works of [mmsegmentation](https://github.com/ope
 - **Jun. 5, 2022**: Add support for custom dataset training. Add a warmup interface for sigloss to help convergence as discussed in Issue [#20](https://github.com/zhyever/Monocular-Depth-Estimation-Toolbox/issues/20). Enhance the DPT support and fix bugs in provided pre-trained models as reported in Issue [#23](https://github.com/zhyever/Monocular-Depth-Estimation-Toolbox/issues/23). 
 - **Apr. 16, 2022**: Finish most of docs and provide all pre-trained parameters. Release codes about BTS, Adabins, DPT, SimIPU, and DepthFormer. Support KITTI, NYU-v2, SUN RGB-D(eval), and CityScapes.
 
-## TODO
-- I will complete the release of BinsFormer models on KITTI dataset (currently limited by the GPU resource). 
-- I would like to include self-supervised depth estimation methods, such as MonoDepth2.
+

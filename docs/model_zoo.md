@@ -32,7 +32,5 @@ Please refer to [DPT](https://github.com/zhyever/Monocular-Depth-Estimation-Tool
 
 Please refer to [SimIPU](https://github.com/zhyever/Monocular-Depth-Estimation-Toolbox/blob/main/configs/simipu) for details.
 
-### DepthFormer
 
-Please refer to [DepthFormer](https://github.com/zhyever/Monocular-Depth-Estimation-Toolbox/blob/main/configs/depthformer) for details.
 

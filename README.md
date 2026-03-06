@@ -1,6 +1,6 @@
 
 # Hf-Depth is a monocular depth estimation model built upon the Monocular-Depth-Estimation-Toolbox. 
-This repository provides the implementation of Hf-Depth. The following section briefly introduces the Monocular-Depth-Estimation-Toolbox.
+This repository provides the implementation of Hf-Depth. The following section briefly introduces the Monocular-Depth-Estimation-Toolbox.If you wish to reproduce the Hf-Depth model, please refer to [Hf-Depth_train.md](../configs/Hf-Depth_swinL/Hf-Depth_train.md).
 # Monocular-Depth-Estimation-Toolbox
 ## Introduction
 

@@ -13,7 +13,8 @@ from mmcv.runner.base_module import BaseModule, ModuleList
 from torch.nn.modules.linear import Linear
 from torch.nn.modules.normalization import LayerNorm
 from torch.nn.modules.utils import _pair as to_2tuple
-
+from torch.nn.init import xavier_uniform_, constant_, kaiming_normal_
+import torchvision.models as models
 from depth.ops import resize
 from depth.utils import get_root_logger
 from depth.models.builder import BACKBONES
@@ -24,6 +25,8 @@ from .resnet import BasicBlock, Bottleneck
 from ..utils import ResLayer
 
 from mmcv.cnn import ConvModule
+
+from ..DTCWT.transform2d import DTCWTForward
 
 class PatchMerging(BaseModule):
     """Merge patch feature map.
@@ -548,7 +551,172 @@ def build_conv_layer(cfg, *args, **kwargs):
 
     layer = conv_layer(*args, **kwargs, **cfg_)
 
-    return layer
+    return layer  
+    
+class SEBlock(BaseModule):
+    def __init__(self, channels, reduction=8):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Conv2d(channels, channels // reduction, 1, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channels // reduction, channels, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        w = self.avg_pool(x)
+        w = self.fc(w)
+        return x * w 
+        
+# ---------------- High-Fre Extractor ---------------- #
+class High_Fre_extractor(BaseModule):
+    def __init__(self,
+                 in_channels=18,
+                 out_channels=192,
+                 use_bn=True,
+                 reduction=8):
+        super(High_Fre_extractor, self).__init__()
+
+        self.Dtcwt = DTCWTForward(J=3, biort='near_sym_b', qshift='qshift_b')
+
+
+        self.branch3 = self._make_conv_block(in_channels, 128, 3, use_bn)
+        self.branch5 = self._make_conv_block(in_channels, 128, 5, use_bn)
+        self.branch7 = self._make_conv_block(in_channels, 128, 7, use_bn)
+
+
+        self.channel_mapper = nn.Sequential(
+            nn.Conv2d(128 * 3, out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels) if use_bn else nn.Identity(),
+            nn.GELU()
+        )
+
+        self.se = SEBlock(out_channels, reduction=reduction)
+
+        self._initialize_weights()
+
+    def _make_conv_block(self, in_channels, out_channels, kernel_size, use_bn=True):
+        padding = kernel_size // 2
+        layers = [
+            nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding, bias=not use_bn)
+        ]
+        if use_bn:
+            layers.append(nn.BatchNorm2d(out_channels))
+        layers.append(nn.GELU())
+        return nn.Sequential(*layers)
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        _, Yh = self.Dtcwt(x)
+        Yh_bchw = []
+
+        for yh in Yh:
+            # yh: [B, C, 6, H, W, 2]
+            mag = torch.sqrt(yh[..., 0] ** 2 + yh[..., 1] ** 2 + 1e-12)
+            mag = mag.view(mag.size(0), mag.size(1) * mag.size(2), mag.size(3), mag.size(4))
+            Yh_bchw.append(mag)
+        a = Yh_bchw
+
+        base_feature = Yh_bchw[0]
+        target_size = base_feature.shape[2:]
+        fused_feature = base_feature
+        for other_feature in Yh_bchw[1:]:
+            upsampled = F.interpolate(other_feature, size=target_size, mode='bilinear', align_corners=False)
+            fused_feature = fused_feature + upsampled
+
+        out3 = self.branch3(fused_feature)
+        out5 = self.branch5(fused_feature)
+        out7 = self.branch7(fused_feature)
+
+        fused = torch.cat([out3, out5, out7], dim=1)
+        fused = self.channel_mapper(fused)
+
+        output = self.se(fused)
+
+        return output
+
+class LiteScanBlock(BaseModule):
+    def __init__(self, dim, k=7, reduction=4, use_dilation=True, use_spatial_gate=False, norm='bn'):
+        super().__init__()
+        assert k % 2 == 1, "k must be odd"
+        mid = max(dim // reduction, 32)
+
+        def Norm(c):
+            if norm == 'gn':
+                g = 32 if c % 32 == 0 else 1
+                return nn.GroupNorm(g, c)
+            else:
+                return nn.BatchNorm2d(c)
+
+        self.pre = nn.Sequential(
+            nn.Conv2d(dim, mid, 1, bias=False),
+            Norm(mid),
+            nn.GELU()
+        )
+
+        self.dw_3x3 = nn.Sequential(
+            nn.Conv2d(mid, mid, 3, padding=1, groups=mid, bias=False),
+            Norm(mid),
+            nn.GELU()
+        )
+        self.dw_h = nn.Sequential(
+            nn.Conv2d(mid, mid, (1, k), padding=(0, k//2), groups=mid, bias=False),
+            Norm(mid),
+            nn.GELU()
+        )
+        self.dw_v = nn.Sequential(
+            nn.Conv2d(mid, mid, (k, 1), padding=(k//2, 0), groups=mid, bias=False),
+            Norm(mid),
+            nn.GELU()
+        )
+
+        self.use_dilation = use_dilation
+        if use_dilation:
+            self.dw_dil = nn.Sequential(
+                nn.Conv2d(mid, mid, 3, padding=2, dilation=2, groups=mid, bias=False),
+                Norm(mid),
+                nn.GELU()
+            )
+
+        fused_in = mid * (4 if use_dilation else 3)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(fused_in, dim, 1, bias=False),
+            Norm(dim),
+        )
+
+        self.use_spatial_gate = use_spatial_gate
+        if use_spatial_gate:
+            self.gate = nn.Sequential(nn.Conv2d(dim, 1, 1, bias=True), nn.Sigmoid())
+
+        self.act = nn.GELU()
+
+    def forward(self, x):
+        identity = x
+        z = self.pre(x)
+        b1 = self.dw_3x3(z)
+        b2 = self.dw_h(z)
+        b3 = self.dw_v(z)
+        if self.use_dilation:
+            b4 = self.dw_dil(z)
+            y = torch.cat([b1, b2, b3, b4], dim=1)
+        else:
+            y = torch.cat([b1, b2, b3], dim=1)
+
+        y = self.fuse(y)
+        if self.use_spatial_gate:
+            y = y * self.gate(y)
+        return self.act(identity + y)
 
 @BACKBONES.register_module()
 class DepthFormerSwin(BaseModule):
@@ -791,25 +959,47 @@ class DepthFormerSwin(BaseModule):
                 layer_name = 'layer{}'.format(i + 1)
                 self.add_module(layer_name, res_layer)
                 self.res_layers.append(layer_name)
-
+        self.high_fre = High_Fre_extractor()
+        self.scan_blocks = nn.ModuleList([ 
+        LiteScanBlock(192,  k=7, reduction=4, use_dilation=True,  use_spatial_gate=False, norm='gn'),
+        LiteScanBlock(384,  k=7, reduction=4, use_dilation=True,  use_spatial_gate=False, norm='gn'),
+        LiteScanBlock(768,  k=5, reduction=4, use_dilation=False, use_spatial_gate=False, norm='gn'),
+        LiteScanBlock(1536, k=5, reduction=8, use_dilation=False, use_spatial_gate=False, norm='gn'),
+])
     @property
     def _conv_stem_norm1(self):
         return getattr(self, self._conv_stem_norm1_name)
 
     def _make_stem_layer(self, in_channels):
-        self.conv1 = build_conv_layer(
-            self.conv_cfg,
-            in_channels,
-            64,
-            kernel_size=7,
-            stride=2,
-            padding=3,
-            bias=False)
+        """
+        Replace original single 7x7 conv with depthwise separable conv:
+        conv_dw: in -> in, groups=in, kernel=7, stride=2
+        conv_pw: in -> 64, kernel=1, stride=1
+        Keep self.conv1 name for compatibility (as nn.Sequential).
+        """
+        # depthwise: per-channel spatial conv
+        conv_dw = build_conv_layer(
+            self.conv_cfg, in_channels, in_channels,
+            kernel_size=7, stride=2, padding=3, groups=in_channels, bias=False
+        )
+
+        # pointwise: 1x1 to desired out channels (64)
+        conv_pw = build_conv_layer(
+            self.conv_cfg, in_channels, 64,
+            kernel_size=1, stride=1, padding=0, bias=False
+        )
+
+        # keep attribute name conv1 so existing code referencing self.conv1 still works
+        self.conv1 = nn.Sequential(conv_dw, conv_pw)
+
+        # normalization on the final 64 channels (same as original)
         self._conv_stem_norm1_name, _conv_stem_norm1 = build_norm_layer(self.conv_norm_cfg, 64, postfix=1)
-        self.add_module(self._conv_stem_norm1_name, _conv_stem_norm1)
+        # register and keep reference for forward
+        setattr(self, self._conv_stem_norm1_name, _conv_stem_norm1)
+        self._conv_stem_norm1 = _conv_stem_norm1
+
         self._conv_stem_relu = nn.ReLU(inplace=True)
         self._conv_stem_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        # self.conv_skip = ConvModule(64, 64, kernel_size=3, padding=1, stride=1)
 
     def init_weights(self):
         if self.pretrained is None:
@@ -880,40 +1070,27 @@ class DepthFormerSwin(BaseModule):
             # load state_dict
             self.load_state_dict(state_dict, False)
 
-    def conv_stem(self, x):
-        
-        conv_stem = self.conv1(x)
-        conv_stem = self._conv_stem_norm1(conv_stem)
-        conv_stem = self._conv_stem_relu(conv_stem)
-    
-        if self.num_stages != 0:
-            x = self._conv_stem_maxpool(x)
-            for i, layer_name in enumerate(self.res_layers):
-                res_layer = getattr(self, layer_name)
-                conv_stem = res_layer(conv_stem)
-
-        return conv_stem
 
     def forward(self, x):
         outs = []
-        conv_stem = self.conv_stem(x)
-        outs.append(conv_stem)
-
-        x = self.patch_embed(x)
+        high_fre = self.high_fre(x)
+        outs.append(high_fre)
+        x1 = self.patch_embed(x)
 
         hw_shape = (self.patch_embed.DH, self.patch_embed.DW)
         if self.use_abs_pos_embed:
-            x = x + self.absolute_pos_embed
-        x = self.drop_after_pos(x)
+            x1 = x1+ self.absolute_pos_embed
+        x1 = self.drop_after_pos(x1)
 
         for i, stage in enumerate(self.stages):
-            x, hw_shape, out, out_hw_shape = stage(x, hw_shape)
+            x1, hw_shape, out, out_hw_shape = stage(x1, hw_shape)
             if i in self.out_indices:
                 norm_layer = getattr(self, f'norm{i}')
                 out = norm_layer(out)
                 out = out.view(-1, *out_hw_shape,
                                self.num_features[i]).permute(0, 3, 1,
                                                              2).contiguous()
+                out = self.scan_blocks[i](out)
                 outs.append(out)
 
         return outs

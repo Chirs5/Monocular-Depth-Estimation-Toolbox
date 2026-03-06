@@ -2,3 +2,4 @@ mmcv
 prettytable
 torch
 torchvision
+pytorch_wavelets==1.3.0

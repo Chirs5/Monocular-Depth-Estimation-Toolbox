@@ -34,37 +34,37 @@ Optional arguments:
 
 Examples:
 
-Assume that you have already downloaded the checkpoints to the directory `checkpoints/`.
+If you have trained the model yourself, please place the trained checkpoint file into the `checkpoints/` directory before running inference.
 
-1. Test DepthFormer and visualize the results. Press any key for the next image.
+1. Test Hf-Depth_swinL and visualize the results. 
 
     ```shell
-    python tools/test.py configs/depthformer/depthformer_swinl_22k_w7_nyu.py \
-        checkpoints/depthformer_swinl_22k_w7_nyu.pth \
+    python tools/test.py configs/Hfdepth/Hf-depth_swinl_nyu.py \
+        checkpoints/Hfdepth_swinl.pth \
         --show
     ```
 
 2. Test DepthFormer and save the painted images for latter visualization.
 
     ```shell
-    python tools/test.py configs/depthformer/depthformer_swinl_22k_w7_nyu.py \
-        checkpoints/depthformer_swinl_22k_w7_nyu.pth \
-        --show-dir depthformer_swinl_22k_w7_nyu_results
+    python tools/test.py configs/Hfdepth/Hf-depth_swinl_nyu.py \
+        checkpoints/Hfdepth_swinl_22k_w7_nyu.pth \
+        --show-dir Hfdepth_swinl_22k_w7_nyu_results
     ```
 
 3. Test DepthFormer on NYU (without saving the test results) and evaluate the mIoU.
 
     ```shell
-    python tools/test.py configs/depthformer/depthformer_swinl_22k_w7_nyu.py \
-        checkpoints/depthformer_swinl_22k_w7_nyu.pth \
+    python tools/test.py configs//Hfdepth/Hf-depth_swinl_nyu.py \
+        checkpoints/Hfdepth_swinl_22k_w7_nyu.pth \
         --eval x(can be any arg)
     ```
 
 4. Test DepthFormer with 4 GPUs, and evaluate the standard 2D metric.
 
     ```shell
-    bash ./tools/dist_test.sh configs/depthformer/depthformer_swinl_22k_w7_nyu.py \
-        checkpoints/depthformer_swinl_22k_w7_nyu.pth \
+    bash ./tools/dist_test.sh configs/Hfdepth/Hf-depth_swinl_nyu.py \
+        checkpoints/Hfdepth_swinl_22k_w7_nyu.pth \
         4 --eval x(can be any arg)
     ```
 
@@ -89,8 +89,8 @@ Assume that you have already downloaded the checkpoints to the directory `checkp
 
     ```shell
     python ./tools/misc/visualize_point-cloud.py \
-        configs/depthformer/depthformer_swinl_22k_w7_nyu.py \
-        checkpoints/depthformer_swinl_22k_w7_nyu.pth \
+        configs/Hfdepth/Hf-depth_swinl_nyu.py \
+        checkpoints/Hf-depth_swinl_22k_w7_nyu.pth \
         --output-dir point-cloud
     ```
    

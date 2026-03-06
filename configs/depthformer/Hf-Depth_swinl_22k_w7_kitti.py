@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/models/depthformer_swin.py', '../_base_/datasets/kitti.py',
+    '../_base_/models/Hf-Depth_swin.py', '../_base_/datasets/kitti.py',
     '../_base_/default_runtime.py'
 ]
 

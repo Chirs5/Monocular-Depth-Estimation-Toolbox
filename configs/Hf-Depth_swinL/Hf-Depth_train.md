@@ -34,7 +34,7 @@ data
 
 Detailed dataset preparation instructions and download links can be found in:
 
-**[Dataset Preparation Guide](docs/dataset_prepare.md)**
+**[Dataset Preparation Guide](../docs/dataset_prepare.md)**
 
 ---
 
